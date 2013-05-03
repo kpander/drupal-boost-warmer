@@ -1,1 +1,10 @@
-name = Boost Warmer
+name = "Boost Warmer"
+description = "Crawl all pages from sitemap.xml, and queue expired pages for re-crawling."
+package = Performance and scalability
+
+core = 7.x
+version = "7.x-1.0"
+
+files[] = class.BoostWarmer.php
+
+dependencies[] = boost
