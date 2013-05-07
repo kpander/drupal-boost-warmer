@@ -1,7 +1,5 @@
 TODO
 ====
 - add admin interface to configure:
-  - watchdog requests toggle
-  - set # requests / session
   - force 'request all now'
 - address http auth problems on live site

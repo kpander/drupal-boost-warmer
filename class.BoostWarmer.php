@@ -1,8 +1,8 @@
 <?php
 /**
  * @file
- * Code to crawl urls found in sitemap.xml and sitemap.dynamic.txt, that don't
- * have rendered boost file already.
+ * Code to crawl urls found in sitemap.xml, from hook_boost_warmer_get_urls()
+ * and from the static list of paths.
  *
  * Most of this was derived from code found here:
  * http://drupal.org/node/1916906
@@ -11,21 +11,18 @@
 
 class BoostWarmer {
 
-  protected $base_sitemap;
   protected $max_requests;
 
+  protected $url_base = '';
   protected $urls = array();
 
   protected $user;
   protected $password;
 
 
-  function __construct() {
-    // Define location of sitemap.xml.
-    $this->base_sitemap = variable_get('xmlsitemap_base_url', '') . "/sitemap.xml";
-
+  function __construct($options) {
     // Define maximum number of url requests per run.
-    $this->max_requests = 5;
+    $this->max_requests = $options->max_requests;
 
 
     $this->user = '';
@@ -42,8 +39,12 @@ class BoostWarmer {
    * Get all URLs to crawl.
    */
   private function getUrls() {
+    # @todo REMOVE THIS DEPENDENCY...
+    $this->url_base = variable_get('xmlsitemap_base_url', '') . '/';
+
     $this->getUrlsFromSitemap();
-    $this->getUrlsFromDynamicList();
+    $this->getUrlsFromHook();
+    $this->getUrlsFromStaticList();
     $this->urls = array_unique($this->urls);
     dpm($this->urls, 'all urls to crawl');
   }
@@ -52,12 +53,18 @@ class BoostWarmer {
    * Get URLs in sitemap.xml.
    */
   private function getUrlsFromSitemap() {
-    // Retrieve URLs from sitemap.xml.
+    // Retrieve URLs from sitemap.xml, if it's defined.
+    $url = trim(variable_get('xmlsitemap_base_url', ''));
+    if (empty($url)) {
+      return;
+    }
+    $url .= "/sitemap.xml";
+
     $ch = curl_init();
     if (!empty($this->password)) {
       curl_setopt($ch, CURLOPT_USERPWD, $this->user . ':' . $this->password);
     }
-    curl_setopt($ch, CURLOPT_URL, $this->base_sitemap);
+    curl_setopt($ch, CURLOPT_URL, $url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     $data = curl_exec($ch);
     curl_close($ch);
@@ -72,24 +79,41 @@ class BoostWarmer {
   }
 
   /**
-   * Get URLs in files/sitemap.dynamic.txt.
+   * Get URLs defined by hook_boost_warmer_get_urls().
    */
-  private function getUrlsFromDynamicList() {
-    $file = boost_warmer_get_filename();
-    if (!file_exists($file)) {
-      return;
-    }
+  private function getUrlsFromHook() {
+    $urls = variable_get(BOOST_WARMER_VAR_URLS_HOOK, array());
 
-    $items  = file($file);
-    $urls   = array();
-
-    for ($i=0; $i<count($items); $i++) {
-      $url = trim($items[$i]);
+    for ($i=0; $i<count($urls); $i++) {
+      $url = trim($urls[$i]);
       if (!empty($url)) {
-        $this->urls[] = $url;
+        $this->urls[] = $this->url_base . $url;
+        #$this->urls[] = url($url, array('absolute' => TRUE));
       }
     }
   }
+
+  /**
+   * Get URLs defined in the admin/settings page.
+   */
+  private function getUrlsFromStaticList() {
+    $text = trim(variable_get(BOOST_WARMER_VAR_URLS_STATIC, ''));
+    if (empty($text)) {
+      return;
+    }
+
+    $urls = explode("\n", $text);
+    for ($i = 0; $i<count($urls); $i++) {
+      $url = trim($urls[$i]);
+
+      if (!empty($url)) {
+        $this->urls[] = $this->url_base . $url;
+        #$this->urls[] = url($url, array('absolute' => TRUE));
+      }
+    }
+  }
+
+
 
 
 
@@ -138,10 +162,8 @@ class BoostWarmer {
       }
     }
 
-    // Log a record of the pages we requested.
-    $message  = "Requested %count urls: " . implode(', ', $requested_urls);
-    $vars     = array('%count' => count($requested_urls));
-    watchdog('boost_warmer', $message, $vars, WATCHDOG_INFO);
+    // Return the list of requested urls;
+    return $requested_urls;
   }
 
 

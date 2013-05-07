@@ -2,76 +2,34 @@
 /**
  * @file
  * Boost Warmer
- * May 2 2013, Kendall Anderson
- *
- * Events that we care about:
- *
- * 1. hook_cron() (Drupal's general cron event)
- *   
- *    This is where we add any additional elements to sitemap.xml if necessary,
- *    and generate the sitemap.dynamic.txt file to provide additional urls
- *    to boost that may not exist in sitemap.xml.
- *
- * 2. boost_warmer_page_crawl()
- *
- *    Loading this page causes pages that aren't currently boosted, to be
- *    requested (thereby warming the boost cache for them).
- *
- *
- *
- * INSTALLATION
- * See installation.txt file.
  */
 
 
 define('BOOST_WARMER_PATH', 'boost-warmer/crawl');
 
-/**
- * Implements hook_cron().
- */
-function boost_warmer_cron() {
-  // Ask modules for urls to request that may not be in sitemap.xml.
-  $hook     = 'boost_warmer_get_urls';
-  $modules  = module_implements($hook);
-
-  $items = array();
-  foreach ($modules as $module) {
-    $items[] = module_invoke($module, $hook);
-  }
-
-  boost_warmer_save_dynamic_urls($items);
-}
 
 /**
- * Save the dynamic urls discovered by hook_boost_warmer_get_urls() to a file
- * that can be processed by the crawler.
+ * Define variable where we store additional urls to scan for rendering to
+ * static html by Boost. (The core set of urls comes from whatever is found in
+ * sitemap.xml.)
  */
-function boost_warmer_save_dynamic_urls($item_groups) {
-  $file = boost_warmer_get_filename();
-  if (file_exists($file)) {
-    unlink($file);
-  }
+define('BOOST_WARMER_VAR_URLS_HOOK',    'boost_warmer_urls_hook');
+define('BOOST_WARMER_VAR_URLS_STATIC',  'boost_warmer_urls_static');
 
-  if (!count($item_groups)) {
-    return;
-  }
+/**
+ * Define variable where we store the maximum number of page requests to 
+ * execute per boost warmer run.
+ */
+define('BOOST_WARMER_VAR_MAX_REQUESTS', 'boost_warmer_max_requests');
+define('BOOST_WARMER_DEFAULT_MAX_REQUESTS', 5);
 
-  // Combine all urls found during hook_boost_warmer_prepare().
-  $urls = array();
-  foreach ($item_groups as $items) {
-    if (count($items)) {
-      $urls = array_merge($urls, $items);
-    }
-  }
+/**
+ * Define variable where we store whether we want page requests to be logged
+ * via watchdog() or not.
+ */
+define('BOOST_WARMER_VAR_USE_WATCHDOG', 'boost_warmer_use_watchdog');
+define('BOOST_WARMER_DEFAULT_USE_WATCHDOG', 0);
 
-  // Preprend all urls with the domain name.
-  $path = variable_get('xmlsitemap_base_url', '') . '/';
-  for ($i=0; $i<count($urls); $i++) {
-    $urls[$i] = $path . $urls[$i];
-  }
-
-  file_put_contents($file, implode("\n", $urls));
-}
 
 
 
@@ -81,12 +39,44 @@ function boost_warmer_save_dynamic_urls($item_groups) {
 function boost_warmer_menu() {
   $items = array();
   $items[BOOST_WARMER_PATH] = array(
-    'type'            => MENU_CALLBACK,
-    'page callback'   => 'boost_warmer_page_crawl',
-    'access callback' => TRUE,
+    'type'              => MENU_CALLBACK,
+    'page callback'     => 'boost_warmer_page_crawl',
+    'access callback'   => TRUE,
   );
+
+  $items['admin/config/system/boost-warmer'] = array(
+    'title'             => 'Boost Warmer',
+    'description'       => 'Configuration for Boost Warmer.',
+    'page callback'     => 'drupal_get_form',
+    'page arguments'    => array('boost_warmer_admin_settings'),
+    'access arguments'  => array('administer site configuration'),
+    'type'              => MENU_NORMAL_ITEM,
+    'file'              => 'boost_warmer.admin.inc',
+  );
+
   return $items;
 }
+
+
+/**
+ * Implements hook_cron().
+ */
+function boost_warmer_cron() {
+  // Ask modules for urls that may not be in sitemap.xml. These urls will also
+  // be considered when checking for cached boost pages.
+  $hook     = 'boost_warmer_get_urls';
+  $modules  = module_implements($hook);
+
+  $urls = array();
+  foreach ($modules as $module) {
+    $items = module_invoke($module, $hook);
+    $urls += $items;
+  }
+
+  dpm($urls, 'urls from hook');
+  variable_set(BOOST_WARMER_VAR_URLS_HOOK, $urls);
+}
+
 
 /**
  * There are 2 steps to the crawl process:
@@ -94,25 +84,33 @@ function boost_warmer_menu() {
  * 2. Crawl any pages that haven't been cached yet.
  */
 function boost_warmer_page_crawl() {
+  boost_warmer_cron();
+#  return 'test';
+
   // Tell boost to remove any cached html files that have expired.
   boost_cron();
 
+
   // Crawl any pages that haven't been cached yet.
-  $o = new BoostWarmer();
-  $o->crawl();
+  $options = (object) array(
+    'max_requests'  => variable_get(BOOST_WARMER_VAR_MAX_REQUESTS, BOOST_WARMER_DEFAULT_MAX_REQUESTS),
+  );
+  $o = new BoostWarmer($options);
+  $requested_urls = $o->crawl();
+
+
+  // Log a record of the pages we requested.
+  $use_watchdog = (int) variable_get(BOOST_WARMER_VAR_USE_WATCHDOG, BOOST_WARMER_DEFAULT_USE_WATCHDOG);
+  if ($use_watchdog) {
+    $message  = "Requested %count urls: " . implode(', ', $requested_urls);
+    $vars     = array('%count' => count($requested_urls));
+    watchdog('boost_warmer', $message, $vars, WATCHDOG_INFO);
+  }
+
 
   // Force a clean exit, with no output.
-  return 'test';
   exit(0);
 }
 
 
-
-/**
- * Return the path/filename to the dynamic sitemap urls list.
- */
-function boost_warmer_get_filename() {
-  $path = variable_get('file_public_path', 'files') . '/';
-  return $path . 'sitemap.dynamic.txt';
-}
 
