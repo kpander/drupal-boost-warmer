@@ -5,9 +5,18 @@ that haven't been cached by Boost. By running on a regular basis as a cron job,
 it ensures that expired pages are re-cached so the chance of an anonymous user
 visiting an uncached page is minimized.
 
+
+WHY USE THIS MODULE?
+====================
+Using Boost is great for performance, but it's only beneficial if a user visits
+a page that's already been cached by Boost. (And that the cached page hasn't
+expired yet). This module tries to keep the cache warm for every page a user
+can visit on your site.
+
 While similar to Boost Crawler, it has the following differences:
 - It will check all pages defined in sitemap.xml
 - It will check any pages defined by hook_boost_warmer_get_urls()
+- It will check a list of manually-defined pages
 - It does not require or use the HTTPRL library
 
 The Boost Crawler module (included with Boost) uses the HTTPRL library for page 
@@ -25,25 +34,18 @@ The following crontab example will crawl uncached pages every 10 minutes:
 
 DETAILS
 =======
-@todo COMPLETE THIS DOCUMENTATION
-
 Events that we care about:
 
 1. hook_cron() (Drupal's general cron event)
   
-   This is where we add any additional elements to sitemap.xml if necessary,
-   and generate the sitemap.dynamic.txt file to provide additional urls
-   to boost that may not exist in sitemap.xml.
+   This is where we find any additional pages to crawl from third-party modules
+   by invoking the hook_boost_warmer_get_urls() function.
 
 2. boost_warmer_page_crawl()
 
-   Loading this page causes pages that aren't currently boosted, to be
-   requested (thereby warming the boost cache for them).
- 
-
-
-
-
+   Loading this page causes the crawler to request the next batch of pages that
+   either haven't been cached by Boost yet, or have expired. This will be 
+   called via a cron job. (See INSTALLATION above.)
 
 
 AUTHOR/MAINTAINER

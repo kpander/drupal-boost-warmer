@@ -101,7 +101,7 @@ function boost_warmer_page_crawl() {
 
   // Log a record of the pages we requested.
   $use_watchdog = (int) variable_get(BOOST_WARMER_VAR_USE_WATCHDOG, BOOST_WARMER_DEFAULT_USE_WATCHDOG);
-  if ($use_watchdog) {
+  if ($use_watchdog && count($requested_urls) > 0) {
     $message  = "Requested %count urls: " . implode(', ', $requested_urls);
     $vars     = array('%count' => count($requested_urls));
     watchdog('boost_warmer', $message, $vars, WATCHDOG_INFO);
