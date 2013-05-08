@@ -1,5 +1,0 @@
-TODO
-====
-- add admin interface to configure:
-  - force 'request all now'
-- address http auth problems on live site

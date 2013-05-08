@@ -30,6 +30,12 @@ define('BOOST_WARMER_DEFAULT_MAX_REQUESTS', 5);
 define('BOOST_WARMER_VAR_USE_WATCHDOG', 'boost_warmer_use_watchdog');
 define('BOOST_WARMER_DEFAULT_USE_WATCHDOG', 0);
 
+/**
+ * Define variable where we store the user agent to request pages with.
+ */
+define('BOOST_WARMER_VAR_USER_AGENT', 'boost_warmer_user_agent');
+define('BOOST_WARMER_DEFAULT_USER_AGENT', 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.13) Gecko/20080311 Firefox/2.0.0.13');
+
 
 
 
@@ -59,41 +65,23 @@ function boost_warmer_menu() {
 
 
 /**
- * Implements hook_cron().
- */
-function boost_warmer_cron() {
-  // Ask modules for urls that may not be in sitemap.xml. These urls will also
-  // be considered when checking for cached boost pages.
-  $hook     = 'boost_warmer_get_urls';
-  $modules  = module_implements($hook);
-
-  $urls = array();
-  foreach ($modules as $module) {
-    $items = module_invoke($module, $hook);
-    $urls += $items;
-  }
-
-  dpm($urls, 'urls from hook');
-  variable_set(BOOST_WARMER_VAR_URLS_HOOK, $urls);
-}
-
-
-/**
  * There are 2 steps to the crawl process:
  * 1. Run boost_cron() to delete any cached html files that have expired.
  * 2. Crawl any pages that haven't been cached yet.
  */
 function boost_warmer_page_crawl() {
-  boost_warmer_cron();
-#  return 'test';
-
-  // Tell boost to remove any cached html files that have expired.
+  // Tell Boost to remove any cached html files that have expired.
   boost_cron();
 
 
-  // Crawl any pages that haven't been cached yet.
+  // Get additional urls to crawl from third-party modules.
+  boost_warmer_page_crawl_prepare();
+
+
+  // Crawl any pages that haven't been cached yet (or have expired).
   $options = (object) array(
     'max_requests'  => variable_get(BOOST_WARMER_VAR_MAX_REQUESTS, BOOST_WARMER_DEFAULT_MAX_REQUESTS),
+    'user_agent'    => variable_get(BOOST_WARMER_VAR_USER_AGENT, BOOST_WARMER_DEFAULT_USER_AGENT),
   );
   $o = new BoostWarmer($options);
   $requested_urls = $o->crawl();
@@ -109,8 +97,27 @@ function boost_warmer_page_crawl() {
 
 
   // Force a clean exit, with no output.
+  #return 'test';
   exit(0);
 }
 
 
+/**
+ * Before running the page crawl event, update the list of urls to crawl that
+ * are defined by third-party modules.
+ */
+function boost_warmer_page_crawl_prepare() {
+  // Ask modules for urls that may not be in sitemap.xml. These urls will also
+  // be considered when checking for cached boost pages.
+  $hook     = 'boost_warmer_get_urls';
+  $modules  = module_implements($hook);
 
+  $urls = array();
+  for ($i=0; $i<count($modules); $i++) {
+    $items = module_invoke($modules[$i], $hook);
+    $urls += $items;
+  }
+
+  #dpm($urls, 'urls from hook');
+  variable_set(BOOST_WARMER_VAR_URLS_HOOK, $urls);
+}

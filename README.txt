@@ -24,34 +24,36 @@ requests (with good reasons related to performance). However, this will not
 function on some servers, which is one reason to use this module instead.
 
 
+HOW IT WORKS
+============
+When the path /boost-warmer/crawl is requested:
+
+1. A list of URLs to crawl is generated. This includes all urls returned from
+   /sitemap.xml (if it exists), all urls entered in the admin/settings page
+   for this module, and all urls defined by third-party modules and returned
+   through hook_boost_warmer_get_urls().
+
+2. Boost is given a chance to expire any statically cached html pages that are
+   no longer valid.
+   
+3. The first 10 urls that haven't been statically cached by Boost are given
+   page requests, causing them to be cached by Boost. (The number of urls is
+   configurable in the admin/settings page.)
+
+
 INSTALLATION
 ============
-You'll need to add a cron event to initiate the crawler at a regular interval.
-The following crontab example will crawl uncached pages every 10 minutes:
+For this module to work, you'll need to add a cron event to initiate the 
+crawler at a regular interval. The following crontab example will crawl 
+for pages to Boost every 10 minutes:
 
-*/10 * * * * /usr/bin/wget -O - -q -t 1 http://your-site.com/boost-warmer/crawl
-
-
-DETAILS
-=======
-Events that we care about:
-
-1. hook_cron() (Drupal's general cron event)
-  
-   This is where we find any additional pages to crawl from third-party modules
-   by invoking the hook_boost_warmer_get_urls() function.
-
-2. boost_warmer_page_crawl()
-
-   Loading this page causes the crawler to request the next batch of pages that
-   either haven't been cached by Boost yet, or have expired. This will be 
-   called via a cron job. (See INSTALLATION above.)
+*/10 * * * * /usr/bin/wget -O - -q -t 1 http://YOUR-SITE.COM/boost-warmer/crawl
 
 
-AUTHOR/MAINTAINER
-=================
-Kendall Anderson <dailyphotography at gmail DOT com>
-http://invisiblethreads.com
+CONFIGURATION
+=============
+After installing the module, go to /admin/config/system/boost-warmer to change
+the module settings.
 
 
 CREDITS
@@ -63,9 +65,22 @@ The page request (curl) implementation was derived from the code here:
   http://drupal.org/node/1916906
 
 
+AUTHOR/MAINTAINER
+=================
+Kendall Anderson <dailyphotography at gmail DOT com>
+http://invisiblethreads.com
+
 
 CHANGELOG
 =========
 v1.0, 2013-05-02
-----------------
 - initial development
+
+
+TODO
+====
+- in admin/settings page, provide link to 'crawl all pages now'
+- in admin/settings page, give ability to specific username/password for
+  crawling pages behind http auth, and implement http auth in the crawl()
+  method
+

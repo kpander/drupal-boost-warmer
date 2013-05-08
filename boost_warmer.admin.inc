@@ -7,8 +7,6 @@
 function boost_warmer_admin_settings() {
   $form = array();
 
-  $msg = "@todo: created dynamically with results of hook_boost_warmer_get_urls but we should also allow for a static list that can be updated...";
-
 
   $form[BOOST_WARMER_VAR_MAX_REQUESTS] = array(
     '#title'          => 'Maximum number of page requests per execution',
@@ -31,6 +29,15 @@ function boost_warmer_admin_settings() {
     '#description'    => "This can quickly fill up your database. Only enable this if you know what you're doing!",
     '#default_value'  => variable_get(BOOST_WARMER_VAR_USE_WATCHDOG, BOOST_WARMER_DEFAULT_USE_WATCHDOG),
   );
+
+
+  $form[BOOST_WARMER_VAR_USER_AGENT] = array(
+    '#title'          => "User agent to request pages with",
+    '#type'           => 'textfield',
+    '#description'    => "If your site expects certain types of browsers, you'll want to set this to something typical, e.g.:<br>" . BOOST_WARMER_DEFAULT_USER_AGENT . "<br><br>However, if you want to be able to filter for and ignore boost_warmer page requests (e.g., in your analytics tool) set this to something custom, e.g.,<br>boost_warmer",
+    '#default_value'  => variable_get(BOOST_WARMER_VAR_USER_AGENT, BOOST_WARMER_DEFAULT_USER_AGENT),
+  );
+
 
   return system_settings_form($form);
 }

@@ -12,6 +12,7 @@
 class BoostWarmer {
 
   protected $max_requests;
+  protected $user_agent;
 
   protected $url_base = '';
   protected $urls = array();
@@ -23,6 +24,9 @@ class BoostWarmer {
   function __construct($options) {
     // Define maximum number of url requests per run.
     $this->max_requests = $options->max_requests;
+
+    // Define the CURL user agent.
+    $this->user_agent = $options->user_agent;
 
 
     $this->user = '';
@@ -39,36 +43,25 @@ class BoostWarmer {
    * Get all URLs to crawl.
    */
   private function getUrls() {
-    # @todo REMOVE THIS DEPENDENCY...
-    $this->url_base = variable_get('xmlsitemap_base_url', '') . '/';
+    $this->url_base = $GLOBALS['base_url'] . '/';
 
     $this->getUrlsFromSitemap();
     $this->getUrlsFromHook();
     $this->getUrlsFromStaticList();
     $this->urls = array_unique($this->urls);
-    dpm($this->urls, 'all urls to crawl');
+    #dpm($this->urls, 'all urls to crawl');
   }
 
   /**
    * Get URLs in sitemap.xml.
    */
   private function getUrlsFromSitemap() {
-    // Retrieve URLs from sitemap.xml, if it's defined.
-    $url = trim(variable_get('xmlsitemap_base_url', ''));
-    if (empty($url)) {
+    // Retrieve URLs from sitemap.xml, if it exists.
+    $url  = $this->url_base . 'sitemap.xml';
+    $data = trim($this->requestUrl($url));
+    if (empty($data)) {
       return;
     }
-    $url .= "/sitemap.xml";
-
-    $ch = curl_init();
-    if (!empty($this->password)) {
-      curl_setopt($ch, CURLOPT_USERPWD, $this->user . ':' . $this->password);
-    }
-    curl_setopt($ch, CURLOPT_URL, $url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-    $data = curl_exec($ch);
-    curl_close($ch);
-
  
     // Get urls from xml.
     $xml_file_list = new SimpleXMLElement($data);
@@ -88,7 +81,6 @@ class BoostWarmer {
       $url = trim($urls[$i]);
       if (!empty($url)) {
         $this->urls[] = $this->url_base . $url;
-        #$this->urls[] = url($url, array('absolute' => TRUE));
       }
     }
   }
@@ -108,7 +100,6 @@ class BoostWarmer {
 
       if (!empty($url)) {
         $this->urls[] = $this->url_base . $url;
-        #$this->urls[] = url($url, array('absolute' => TRUE));
       }
     }
   }
@@ -128,7 +119,7 @@ class BoostWarmer {
   public function crawl() {
     $requested_urls = array();
 
-    // Check each url to see if it's been 'boosted' yet.
+    // Check each url to see if it's been processed by Boost yet.
     foreach ($this->urls as $url) {
       // If we've already requested the maximum number of urls in this pass,
       // stop the process.
@@ -136,33 +127,33 @@ class BoostWarmer {
         break;
       };
 
-      // Ask Boost to generate a name for the cached filename. This should take
-      // into consideration all boost variables automatically, as it uses
-      // Boost itself to generate the filename.
+      // Ask Boost for the statically cached filename. This will take into
+      // consideration all Boost variables automatically, as it uses Boost
+      // itself to generate the filename.
       $boost      = boost_transform_url($url);
       $temp_file  = DRUPAL_ROOT . '/' . $boost['filename'];
       $temp_file .= '.' . variable_get('boost_extension_texthtml', 'html');
 
-#      $temp_file = $this->base_path . substr($url, 7) ."." . variable_get('boost_extension_texthtml', 'html');
-#      $temp_file = str_replace('?', variable_get('boost_char', '_'), $temp_file);
-      dpm("look for file: $temp_file");
+      #dpm("look for file: $temp_file");
 
-      if (!(file_exists($temp_file))) {
-        dpm("not found");
-        // We don't have a rendered boost file for this url. Request the page
-        // in order to generate the static html file.
-        #drupal_set_message("REQUEST: $url");
-        $requested_urls[] = preg_replace("/^http:\/\/[^\/]+\//", '', $url);
-        $this->requestUrl($url);
+      if (file_exists($temp_file)) {
+        // We already have a rendered static html file for this url. Because
+        // we already called boost_cron() prior to this crawl event, that means
+        // the cached file hasn't expired yet and is valid.
+        //
+        // Ignore this url.
+        #drupal_set_message("<em>Ignore: $url</em>");
       }
       else {
-        dpm("found");
-        // We already have a rendered boost file for this url. Ignore it.
-        #drupal_set_message("<em>Ignore: $url</em>");
+        // This url hasn't been statically cached by Boost yet, or it's expired
+        // recently. Request the page so Boost can build the static html file.
+        #drupal_set_message("REQUEST: $url");
+        $requested_urls[] = preg_replace("/^https?:\/\/[^\/]+\//", '', $url);
+        $this->requestUrl($url);
       }
     }
 
-    // Return the list of requested urls;
+    // Return the list of requested urls.
     return $requested_urls;
   }
 
@@ -171,16 +162,35 @@ class BoostWarmer {
   /**
    * Request the given URL. This will cause boost to render the page to a
    * static html file, thereby 'warming' the cache for this url.
+   *
+   * @todo implement http auth for both curl and stream
    */
   private function requestUrl($url) {
-    $ch = curl_init();
-    if (!empty($this->password)) {
-      curl_setopt($ch, CURLOPT_USERPWD, $this->user . ':' . $this->password);
+    // Use curl if it's present. Otherwise, we use file_get_contents().
+    if (function_exists('curl_exec')) {
+      $ch = curl_init();
+#      if (!empty($this->password)) {
+#        curl_setopt($ch, CURLOPT_USERPWD, $this->user . ':' . $this->password);
+#      }
+      curl_setopt($ch, CURLOPT_URL, $url);
+      curl_setopt($ch, CURLOPT_USERAGENT, $this->user_agent);
+      curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+      $data = curl_exec($ch);
+      curl_close($ch);
     }
-    curl_setopt($ch, CURLOPT_URL, $url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-    $data = curl_exec($ch);
-    curl_close($ch);
+    else {
+      // Create a stream.
+      $opts = array(
+        'http' => array(
+          'method'  => "GET",
+          'header'  => "Accept-language: en\r\n",# . "Cookie: foo=bar\r\n",
+        ),
+      );
+      $context  = stream_context_create($opts);
+      $data     = file_get_contents($url, false, $context);
+    }
+
+    return $data;
   }
 
 
