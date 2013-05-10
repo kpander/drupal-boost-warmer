@@ -4,43 +4,41 @@
  * Code to crawl urls found in sitemap.xml, from hook_boost_warmer_get_urls()
  * and from the static list of paths.
  *
- * Most of this was derived from code found here:
- * http://drupal.org/node/1916906
+ * In many ways this is a refactor of the idea at http://drupal.org/node/1916906
+ * with some additional functionality.
  */
 
 
 class BoostWarmer {
 
-  protected $max_requests;
-  protected $user_agent;
-
-  protected $url_base = '';
-  protected $urls = array();
-
-  protected $user;
-  protected $password;
+  // Define the required configuration options. Specifically:
+  // $config->max_requests = Maximum number of url requests per run.
+  // $config->user_agent = The user agent to use when requesting pages via curl.
+  protected $config;
 
 
-  function __construct($options) {
-    // Define maximum number of url requests per run.
-    $this->max_requests = $options->max_requests;
-
-    // Define the CURL user agent.
-    $this->user_agent = $options->user_agent;
+  // Defines the url to the root of the site e.g., "http://domain.com/"
+  // This is used for defining our paths to crawl as absolute urls.
+  protected $url_base;
 
 
-    $this->user = '';
-    $this->password = '';
+  // Stores the full list of urls to crawl.
+  protected $queue = array();
 
 
-    // Get all possible urls to crawl (from combining sitemap.xml and the
-    // files/sitemap.dynamic.txt files).
-    $this->getUrls();
+
+  function __construct($config) {
+    if (empty($config->auth_user) || empty($config->auth_pass)) {
+      unset($config->auth_user);
+      unset($config->auth_pass);
+    }
+    $this->config = $config;
   }
 
 
   /**
-   * Get all URLs to crawl.
+   * Get all possible urls to crawl (from combining sitemap.xml and the
+   * files/sitemap.dynamic.txt files).
    */
   private function getUrls() {
     $this->url_base = $GLOBALS['base_url'] . '/';
@@ -48,8 +46,8 @@ class BoostWarmer {
     $this->getUrlsFromSitemap();
     $this->getUrlsFromHook();
     $this->getUrlsFromStaticList();
-    $this->urls = array_unique($this->urls);
-    #dpm($this->urls, 'all urls to crawl');
+    $this->queue = array_unique($this->queue);
+    #dpm($this->queue, 'refreshed queue with all urls to crawl');
   }
 
   /**
@@ -63,13 +61,16 @@ class BoostWarmer {
       return;
     }
  
-    // Get urls from xml.
-    $xml_file_list = new SimpleXMLElement($data);
+    // Get urls from xml (if we were given valid xml data).
+    if ($this->isXML($data)) {
+      $xml_file_list = new SimpleXMLElement($data);
 
-    foreach ($xml_file_list->url as $xml_file_url_list) {
-      $this->urls[] = (string) $xml_file_url_list->loc;
+      foreach ($xml_file_list->url as $xml_file_url_list) {
+        $this->queue[] = (string) $xml_file_url_list->loc;
+      }
     }
   }
+
 
   /**
    * Get URLs defined by hook_boost_warmer_get_urls().
@@ -80,7 +81,7 @@ class BoostWarmer {
     for ($i=0; $i<count($urls); $i++) {
       $url = trim($urls[$i]);
       if (!empty($url)) {
-        $this->urls[] = $this->url_base . $url;
+        $this->queue[] = $this->url_base . $url;
       }
     }
   }
@@ -99,7 +100,7 @@ class BoostWarmer {
       $url = trim($urls[$i]);
 
       if (!empty($url)) {
-        $this->urls[] = $this->url_base . $url;
+        $this->queue[] = $this->url_base . $url;
       }
     }
   }
@@ -117,15 +118,24 @@ class BoostWarmer {
    * Abort after we reach the maximum number of page requests per session.
    */
   public function crawl() {
+    // Get the queue of urls to crawl, or refresh the queue if it's empty.
+    $this->queue = variable_get(BOOST_WARMER_VAR_QUEUE, array());
+    if (!count($this->queue)) {
+      $this->getUrls();
+    }
+
+
     $requested_urls = array();
 
     // Check each url to see if it's been processed by Boost yet.
-    foreach ($this->urls as $url) {
+    while (count($this->queue)) {
       // If we've already requested the maximum number of urls in this pass,
       // stop the process.
-      if (count($requested_urls) >= $this->max_requests) {
+      if (count($requested_urls) >= $this->config->max_requests) {
         break;
       };
+
+      $url = array_shift($this->queue);
 
       // Ask Boost for the statically cached filename. This will take into
       // consideration all Boost variables automatically, as it uses Boost
@@ -153,6 +163,9 @@ class BoostWarmer {
       }
     }
 
+    // Save the revised queue.
+    variable_set(BOOST_WARMER_VAR_QUEUE, $this->queue);
+
     // Return the list of requested urls.
     return $requested_urls;
   }
@@ -162,35 +175,86 @@ class BoostWarmer {
   /**
    * Request the given URL. This will cause boost to render the page to a
    * static html file, thereby 'warming' the cache for this url.
-   *
-   * @todo implement http auth for both curl and stream
    */
   private function requestUrl($url) {
-    // Use curl if it's present. Otherwise, we use file_get_contents().
+    // Use curl if it's present. Otherwise, default to file_get_contents().
     if (function_exists('curl_exec')) {
-      $ch = curl_init();
-#      if (!empty($this->password)) {
-#        curl_setopt($ch, CURLOPT_USERPWD, $this->user . ':' . $this->password);
-#      }
-      curl_setopt($ch, CURLOPT_URL, $url);
-      curl_setopt($ch, CURLOPT_USERAGENT, $this->user_agent);
-      curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-      $data = curl_exec($ch);
-      curl_close($ch);
+      return $this->requestUrlCurl($url);
     }
     else {
-      // Create a stream.
-      $opts = array(
-        'http' => array(
-          'method'  => "GET",
-          'header'  => "Accept-language: en\r\n",# . "Cookie: foo=bar\r\n",
-        ),
-      );
-      $context  = stream_context_create($opts);
-      $data     = file_get_contents($url, false, $context);
+      return $this->requestUrlStream($url);
+    }
+  }
+
+  /**
+   * Load a page via curl and return the page contents.
+   */
+  private function requestUrlCurl($url) {
+    $ch = curl_init();
+
+    // If we've provide http authentication credentials for requesting pages,
+    // use them.
+    if (isset($this->config->auth_user)) {
+      curl_setopt($ch, CURLOPT_USERPWD, trim($this->config->auth_user) . ':' . trim($this->config->auth_pass));
     }
 
+    curl_setopt($ch, CURLOPT_URL, $url);
+    curl_setopt($ch, CURLOPT_USERAGENT, $this->config->user_agent);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+
+    $data = curl_exec($ch);
+    curl_close($ch);
+
     return $data;
+  }
+
+  /**
+   * Load a page via file_get_contents and return the page contents.
+   */
+  # @todo test httpauth requests for stream method
+  private function requestUrlStream($url) {
+    // Create a stream.
+    $headers = array(
+      "Accept-language: en",
+    );
+    if (isset($this->config->auth_user)) {
+      $headers[] = "Authorization: Basic " . base64_encode($this->config->auth_user . ':' . $this->config->auth_pass);
+    }
+    $opts = array(
+      'http' => array(
+        'method'  => "GET",
+        'header'  => $headers,
+      ),
+    );
+    $context = stream_context_create($opts);
+    return file_get_contents($url, false, $context);
+  }
+
+
+  /**
+   * Confirm the given xml data is valid, to avoid throwing an error when we
+   * use SimpleXMLElement().
+   *
+   * @see http://ca3.php.net/manual/en/class.simplexmlelement.php#107869
+   */
+  private function isXML($data) {
+    libxml_use_internal_errors(true);
+
+    $doc = new DOMDocument('1.0', 'utf-8');
+    $doc->loadXML($data);
+
+    $errors = libxml_get_errors();
+
+    if (empty($errors)){
+      return TRUE;
+    }
+
+    $error = $errors[0];
+    if ($error->level < 3){
+      return TRUE;
+    }
+
+    return FALSE;
   }
 
 

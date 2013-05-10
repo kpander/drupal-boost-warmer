@@ -13,13 +13,13 @@ a page that's already been cached by Boost. (And that the cached page hasn't
 expired yet). This module tries to keep the cache warm for every page a user
 can visit on your site.
 
-While similar to Boost Crawler, it has the following differences:
+While similar to Boost Crawler (included with Boost), it has the following differences:
 - It will check all pages defined in sitemap.xml
 - It will check any pages defined by hook_boost_warmer_get_urls()
 - It will check a list of manually-defined pages
 - It does not require or use the HTTPRL library
 
-The Boost Crawler module (included with Boost) uses the HTTPRL library for page 
+The Boost Crawler module uses the HTTPRL library for page 
 requests (with good reasons related to performance). However, this will not 
 function on some servers, which is one reason to use this module instead.
 
@@ -80,7 +80,3 @@ v1.0, 2013-05-02
 TODO
 ====
 - in admin/settings page, provide link to 'crawl all pages now'
-- in admin/settings page, give ability to specific username/password for
-  crawling pages behind http auth, and implement http auth in the crawl()
-  method
-

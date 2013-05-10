@@ -39,5 +39,23 @@ function boost_warmer_admin_settings() {
   );
 
 
+
+  // Get username and password for http authorization (for crawling/requesting
+  // pages that are behind http authentication).
+  $form[BOOST_WARMER_VAR_HTTPAUTH_USER] = array(
+    '#title'          => "HTTP Auth username",
+    '#type'           => 'textfield',
+    '#description'    => "If access to your site requires http authentication, you'll need to provide the username here and password (below).",
+    '#default_value'  => variable_get(BOOST_WARMER_VAR_HTTPAUTH_USER, ''),
+  );
+  $form[BOOST_WARMER_VAR_HTTPAUTH_PASS] = array(
+    '#title'          => "HTTP Auth password",
+    '#type'           => 'textfield',
+    '#default_value'  => variable_get(BOOST_WARMER_VAR_HTTPAUTH_PASS, ''),
+  );
+
+
+
+
   return system_settings_form($form);
 }

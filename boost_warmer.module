@@ -37,6 +37,19 @@ define('BOOST_WARMER_VAR_USER_AGENT', 'boost_warmer_user_agent');
 define('BOOST_WARMER_DEFAULT_USER_AGENT', 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.13) Gecko/20080311 Firefox/2.0.0.13');
 
 
+/**
+ * Define variables for http auth username and password.
+ */
+define('BOOST_WARMER_VAR_HTTPAUTH_USER', 'boost_warmer_httpauth_user');
+define('BOOST_WARMER_VAR_HTTPAUTH_PASS', 'boost_warmer_httpauth_pass');
+
+
+/**
+ * Define variable that stores the current queue of urls to crawl.
+ */
+define('BOOST_WARMER_VAR_QUEUE', 'boost_warmer_queue');
+
+
 
 
 /**
@@ -82,6 +95,8 @@ function boost_warmer_page_crawl() {
   $options = (object) array(
     'max_requests'  => variable_get(BOOST_WARMER_VAR_MAX_REQUESTS, BOOST_WARMER_DEFAULT_MAX_REQUESTS),
     'user_agent'    => variable_get(BOOST_WARMER_VAR_USER_AGENT, BOOST_WARMER_DEFAULT_USER_AGENT),
+    'auth_user'     => variable_get(BOOST_WARMER_VAR_HTTPAUTH_USER, ''),
+    'auth_pass'     => variable_get(BOOST_WARMER_VAR_HTTPAUTH_PASS, ''),
   );
   $o = new BoostWarmer($options);
   $requested_urls = $o->crawl();
@@ -118,6 +133,5 @@ function boost_warmer_page_crawl_prepare() {
     $urls += $items;
   }
 
-  #dpm($urls, 'urls from hook');
   variable_set(BOOST_WARMER_VAR_URLS_HOOK, $urls);
 }
