@@ -13,7 +13,8 @@ a page that's already been cached by Boost. (And that the cached page hasn't
 expired yet). This module tries to keep the cache warm for every page a user
 can visit on your site.
 
-While similar to Boost Crawler (included with Boost), it has the following differences:
+While similar to Boost Crawler (included with Boost), it has the following 
+differences:
 - It will check all pages defined in sitemap.xml
 - It will check any pages defined by hook_boost_warmer_get_urls()
 - It will check a list of manually-defined pages
@@ -52,6 +53,9 @@ for pages to Boost every 10 minutes:
 
 CONFIGURATION
 =============
+@todo boost_warmer_admin.module
+@todo $conf[] vars
+
 After installing the module, go to /admin/config/system/boost-warmer to change
 the module settings.
 
