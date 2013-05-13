@@ -1,8 +1,28 @@
 <?php
 /**
  * @file
- * Admin settings for the boost warmer module.
+ * Boost Warmer administrative interface.
  */
+
+
+
+/**
+ * Implements hook_menu().
+ */
+function boost_warmer_admin_menu() {
+  $items = array();
+
+  $items['admin/config/system/boost-warmer'] = array(
+    'title'             => 'Boost Warmer',
+    'description'       => 'Configuration for Boost Warmer.',
+    'page callback'     => 'drupal_get_form',
+    'page arguments'    => array('boost_warmer_admin_settings'),
+    'access arguments'  => array('administer site configuration'),
+    'type'              => MENU_NORMAL_ITEM,
+  );
+
+  return $items;
+}
 
 function boost_warmer_admin_settings() {
   $form = array();

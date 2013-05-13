@@ -63,16 +63,6 @@ function boost_warmer_menu() {
     'access callback'   => TRUE,
   );
 
-  $items['admin/config/system/boost-warmer'] = array(
-    'title'             => 'Boost Warmer',
-    'description'       => 'Configuration for Boost Warmer.',
-    'page callback'     => 'drupal_get_form',
-    'page arguments'    => array('boost_warmer_admin_settings'),
-    'access arguments'  => array('administer site configuration'),
-    'type'              => MENU_NORMAL_ITEM,
-    'file'              => 'boost_warmer.admin.inc',
-  );
-
   return $items;
 }
 

@@ -1,0 +1,10 @@
+name = "Boost Warmer UI"
+description = "Administrativ settings for the Boost Warmer module."
+package = "Performance and scalability"
+configure = admin/config/system/boost-warmer
+
+dependencies[] = boost_warmer
+
+core = 7.x
+version = "7.x-1.0"
+
