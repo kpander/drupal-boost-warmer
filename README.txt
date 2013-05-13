@@ -79,4 +79,5 @@ v1.0, 2013-05-02
 
 TODO
 ====
-- in admin/settings page, provide link to 'crawl all pages now'
+- in admin/settings page, provide link to 'crawl all pages now' with a batch
+  process

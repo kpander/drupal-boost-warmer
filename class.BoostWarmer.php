@@ -37,6 +37,72 @@ class BoostWarmer {
 
 
   /**
+   * For each url that doesn't have a rendered boost static html file, request
+   * it, to cause boost to render that page.
+   *
+   * Abort after we reach the maximum number of page requests per session.
+   */
+  public function crawl() {
+    // Get the queue of urls to crawl, or refresh the queue if it's empty.
+    $this->queue = variable_get(BOOST_WARMER_VAR_QUEUE, array());
+    if (!count($this->queue)) {
+      $this->getUrls();
+      #dpm($this->queue, 'refreshed queue with all urls to crawl');
+    }
+
+
+    $requested_urls = array();
+
+    // Check each url to see if it's been processed by Boost yet.
+    while (count($this->queue)) {
+      // If we've already requested the maximum number of urls in this pass,
+      // stop the process.
+      if (count($requested_urls) >= $this->config->max_requests) {
+        break;
+      };
+
+      $url = array_shift($this->queue);
+
+      // Ask Boost for the statically cached filename. This will take into
+      // consideration all Boost variables automatically, as it uses Boost
+      // itself to generate the filename.
+      $boost      = boost_transform_url($url);
+      $temp_file  = DRUPAL_ROOT . '/' . $boost['filename'];
+      $temp_file .= '.' . variable_get('boost_extension_texthtml', 'html');
+
+      #dpm("look for file: $temp_file");
+
+      if (file_exists($temp_file)) {
+        // We already have a rendered static html file for this url. Because
+        // we already called boost_cron() prior to this crawl event, that means
+        // the cached file hasn't expired yet and is valid.
+        //
+        // Ignore this url.
+        #drupal_set_message("<em>Ignore: $url</em>");
+      }
+      else {
+        // This url hasn't been statically cached by Boost yet, or it's expired
+        // recently. Request the page so Boost can build the static html file.
+        #drupal_set_message("REQUEST: $url");
+        $requested_urls[] = preg_replace("/^https?:\/\/[^\/]+\//", '', $url);
+        $this->requestUrl($url);
+      }
+    }
+
+    // Save the revised queue.
+    variable_set(BOOST_WARMER_VAR_QUEUE, $this->queue);
+
+    // Return the list of requested urls.
+    return $requested_urls;
+  }
+
+
+
+
+
+
+
+  /**
    * Get all possible urls to crawl (from combining sitemap.xml and the
    * files/sitemap.dynamic.txt files).
    */
@@ -47,7 +113,6 @@ class BoostWarmer {
     $this->getUrlsFromHook();
     $this->getUrlsFromStaticList();
     $this->queue = array_unique($this->queue);
-    #dpm($this->queue, 'refreshed queue with all urls to crawl');
   }
 
   /**
@@ -106,69 +171,6 @@ class BoostWarmer {
   }
 
 
-
-
-
-
-
-  /**
-   * For each url that doesn't have a rendered boost static html file, request
-   * it, to cause boost to render that page.
-   *
-   * Abort after we reach the maximum number of page requests per session.
-   */
-  public function crawl() {
-    // Get the queue of urls to crawl, or refresh the queue if it's empty.
-    $this->queue = variable_get(BOOST_WARMER_VAR_QUEUE, array());
-    if (!count($this->queue)) {
-      $this->getUrls();
-    }
-
-
-    $requested_urls = array();
-
-    // Check each url to see if it's been processed by Boost yet.
-    while (count($this->queue)) {
-      // If we've already requested the maximum number of urls in this pass,
-      // stop the process.
-      if (count($requested_urls) >= $this->config->max_requests) {
-        break;
-      };
-
-      $url = array_shift($this->queue);
-
-      // Ask Boost for the statically cached filename. This will take into
-      // consideration all Boost variables automatically, as it uses Boost
-      // itself to generate the filename.
-      $boost      = boost_transform_url($url);
-      $temp_file  = DRUPAL_ROOT . '/' . $boost['filename'];
-      $temp_file .= '.' . variable_get('boost_extension_texthtml', 'html');
-
-      #dpm("look for file: $temp_file");
-
-      if (file_exists($temp_file)) {
-        // We already have a rendered static html file for this url. Because
-        // we already called boost_cron() prior to this crawl event, that means
-        // the cached file hasn't expired yet and is valid.
-        //
-        // Ignore this url.
-        #drupal_set_message("<em>Ignore: $url</em>");
-      }
-      else {
-        // This url hasn't been statically cached by Boost yet, or it's expired
-        // recently. Request the page so Boost can build the static html file.
-        #drupal_set_message("REQUEST: $url");
-        $requested_urls[] = preg_replace("/^https?:\/\/[^\/]+\//", '', $url);
-        $this->requestUrl($url);
-      }
-    }
-
-    // Save the revised queue.
-    variable_set(BOOST_WARMER_VAR_QUEUE, $this->queue);
-
-    // Return the list of requested urls.
-    return $requested_urls;
-  }
 
 
 
