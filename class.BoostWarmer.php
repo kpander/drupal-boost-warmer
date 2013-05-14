@@ -191,6 +191,7 @@ class BoostWarmer {
   /**
    * Load a page via curl and return the page contents.
    */
+  # @todo test user agent string is being used
   private function requestUrlCurl($url) {
     $ch = curl_init();
 
@@ -214,6 +215,7 @@ class BoostWarmer {
    * Load a page via file_get_contents and return the page contents.
    */
   # @todo test httpauth requests for stream method
+  # @todo test user agent string is being used
   private function requestUrlStream($url) {
     // Create a stream.
     $headers = array(
@@ -224,8 +226,9 @@ class BoostWarmer {
     }
     $opts = array(
       'http' => array(
-        'method'  => "GET",
-        'header'  => $headers,
+        'method'      => "GET",
+        'header'      => $headers,
+        'user_agent'  => $this->config->user_agent,
       ),
     );
     $context = stream_context_create($opts);

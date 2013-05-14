@@ -1,0 +1,22 @@
+<?php
+/**
+ * @file
+ * Boost Warmer installation hooks.
+ */
+
+
+/**
+ * Implements hook_uninstall().
+ */
+function boost_warmer_admin_uninstall() {
+  // Remove any variables we set via the admin interface.
+  $vars = array(
+    BOOST_WARMER_VAR_MAX_REQUESTS,
+    BOOST_WARMER_VAR_USE_WATCHDOG,
+    BOOST_WARMER_VAR_USER_AGENT,
+    BOOST_WARMER_VAR_URLS_STATIC,
+  );
+  foreach ($vars as $var) {
+    variable_del($var);
+  }
+}

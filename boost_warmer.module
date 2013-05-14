@@ -4,17 +4,10 @@
  * Boost Warmer
  */
 
-
-define('BOOST_WARMER_PATH', 'boost-warmer/crawl');
-
-
 /**
- * Define variable where we store additional urls to scan for rendering to
- * static html by Boost. (The core set of urls comes from whatever is found in
- * sitemap.xml.)
+ * -------------------------------------------------------------------
+ * Define constants for settings variable names and defaults.
  */
-define('BOOST_WARMER_VAR_URLS_HOOK',    'boost_warmer_urls_hook');
-define('BOOST_WARMER_VAR_URLS_STATIC',  'boost_warmer_urls_static');
 
 /**
  * Define variable where we store the maximum number of page requests to 
@@ -36,13 +29,34 @@ define('BOOST_WARMER_DEFAULT_USE_WATCHDOG', 0);
 define('BOOST_WARMER_VAR_USER_AGENT', 'boost_warmer_user_agent');
 define('BOOST_WARMER_DEFAULT_USER_AGENT', 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.13) Gecko/20080311 Firefox/2.0.0.13');
 
-
 /**
  * Define variables for http auth username and password.
  */
 define('BOOST_WARMER_VAR_HTTPAUTH_USER', 'boost_warmer_httpauth_user');
 define('BOOST_WARMER_VAR_HTTPAUTH_PASS', 'boost_warmer_httpauth_pass');
 
+/**
+ * Define the variable where we store a list of additional urls to crawl.
+ */
+define('BOOST_WARMER_VAR_URLS_STATIC', 'boost_warmer_urls_static');
+
+
+/**
+ * -------------------------------------------------------------------
+ * Define constants for general use in the module.
+ */
+
+/**
+ * Define the path to the Boost Crawler page (which initiates the event).
+ */
+define('BOOST_WARMER_PATH', 'boost-warmer/crawl');
+
+/**
+ * Define variable where we store additional urls to scan for rendering to
+ * static html by Boost. (The core set of urls comes from whatever is found in
+ * sitemap.xml.)
+ */
+define('BOOST_WARMER_VAR_URLS_HOOK', 'boost_warmer_urls_hook');
 
 /**
  * Define variable that stores the current queue of urls to crawl.
@@ -68,7 +82,7 @@ function boost_warmer_menu() {
 
 
 /**
- * There are 2 steps to the crawl process:
+ * There are 2 key steps to the crawl process:
  * 1. Run boost_cron() to delete any cached html files that have expired.
  * 2. Crawl any pages that haven't been cached yet.
  */

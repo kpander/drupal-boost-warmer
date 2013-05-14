@@ -27,9 +27,9 @@ function on some servers, which is one reason to use this module instead.
 
 HOW IT WORKS
 ============
-When the path /boost-warmer/crawl is requested:
+When the path /boost-warmer/crawl is requested, this is what happens:
 
-1. A list of URLs to crawl is generated. This includes all urls returned from
+1. A list of URLs to crawl is generated. This includes all urls found in
    /sitemap.xml (if it exists), all urls entered in the admin/settings page
    for this module, and all urls defined by third-party modules and returned
    through hook_boost_warmer_get_urls().
@@ -37,27 +37,55 @@ When the path /boost-warmer/crawl is requested:
 2. Boost is given a chance to expire any statically cached html pages that are
    no longer valid.
    
-3. The first 10 urls that haven't been statically cached by Boost are given
+3. The first 5 urls that haven't been statically cached by Boost are given
    page requests, causing them to be cached by Boost. (The number of urls is
    configurable in the admin/settings page.)
 
 
 INSTALLATION
 ============
-For this module to work, you'll need to add a cron event to initiate the 
-crawler at a regular interval. The following crontab example will crawl 
-for pages to Boost every 10 minutes:
+After installation in Drupal, this module will do nothing.
+
+You must add a cron event to initiate the crawler at a regular interval. The 
+following crontab example will crawl for pages to Boost every 10 minutes:
 
 */10 * * * * /usr/bin/wget -O - -q -t 1 http://YOUR-SITE.COM/boost-warmer/crawl
 
 
 CONFIGURATION
 =============
-@todo boost_warmer_admin.module
-@todo $conf[] vars
+This module can be configured by setting variables in your settings.php file.
+Alternately, you can enable the Boost Warmer UI module to configure it via 
+Drupal at the path: /admin/config/system/boost-warmer
 
-After installing the module, go to /admin/config/system/boost-warmer to change
-the module settings.
+Available configuration variables include:
+
+  // Define the maximum number of page requests to execute each time Boost 
+  // Warmer is called.
+  // Default value = 5
+  $conf['boost_warmer_max_requests'] = 10;
+
+  // Should we log Boost Warmer activity to watchdog()? Note: This will 
+  // increase database activity if you're running Boost Warmer frequently and
+  // are using the Database Logging (dblog) module.
+  // Allowed values = 1 (Yes, log the activity) or 0 (No, don't log activity)
+  // Default value = 0
+  $conf['boost_warmer_use_watchdog'] = 1;
+
+  // Define a specific string for the 'user agent' when requesting pages. This
+  // allows you to set something specific that you can filter for (or exclude)
+  // when reviewing server or analytics logs.
+  // Default value = "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.13) Gecko/20080311 Firefox/2.0.0.13"
+  $conf['boost_warmer_user_agent'] = "Boost Warmer agent";
+
+  // Define a set of paths that Boost Warmer should include in the full list of
+  // urls it will crawl.
+  $paths = array(
+    'my-test-page',
+    'contact',
+    'contact/submission-received',
+  );
+  $conf['boost_warmer_urls_static'] = implode("\n", $paths);
 
 
 CREDITS

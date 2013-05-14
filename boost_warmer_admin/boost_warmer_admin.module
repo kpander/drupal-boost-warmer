@@ -24,24 +24,17 @@ function boost_warmer_admin_menu() {
   return $items;
 }
 
+/**
+ * Prepare the module settings form.
+ */
 function boost_warmer_admin_settings() {
   $form = array();
-
 
   $form[BOOST_WARMER_VAR_MAX_REQUESTS] = array(
     '#title'          => 'Maximum number of page requests per execution',
     '#type'           => 'textfield',
     '#default_value'  => variable_get(BOOST_WARMER_VAR_MAX_REQUESTS, BOOST_WARMER_DEFAULT_MAX_REQUESTS),
   );
-
-
-  $form[BOOST_WARMER_VAR_URLS_STATIC] = array(
-    '#title'          => "Additional paths to test for Boost cache expiry",
-    '#type'           => 'textarea',
-    '#description'    => "These should be paths that do not exist in sitemap.xml, nor are identified by hook_boost_warmer_get_urls().<br><br>One per line. Do not including leading '/' or http://.",
-    '#default_value'  => variable_get(BOOST_WARMER_VAR_URLS_STATIC, ''),
-  );
-
 
   $form[BOOST_WARMER_VAR_USE_WATCHDOG] = array(
     '#title'          => "Should page requests be logged via watchdog?",
@@ -51,30 +44,49 @@ function boost_warmer_admin_settings() {
   );
 
 
-  $form[BOOST_WARMER_VAR_USER_AGENT] = array(
-    '#title'          => "User agent to request pages with",
-    '#type'           => 'textfield',
-    '#description'    => "If your site expects certain types of browsers, you'll want to set this to something typical, e.g.:<br>" . BOOST_WARMER_DEFAULT_USER_AGENT . "<br><br>However, if you want to be able to filter for and ignore boost_warmer page requests (e.g., in your analytics tool) set this to something custom, e.g.,<br>boost_warmer",
-    '#default_value'  => variable_get(BOOST_WARMER_VAR_USER_AGENT, BOOST_WARMER_DEFAULT_USER_AGENT),
+  $form[BOOST_WARMER_VAR_URLS_STATIC] = array(
+    '#title'          => "Additional paths to test for Boost cache expiry",
+    '#type'           => 'textarea',
+    '#description'    => "These should be paths that do not exist in sitemap.xml, nor are identified by hook_boost_warmer_get_urls().<br><br>One per line. Do not including leading '/' or http://.<br><br>This is useful when you have paths that you want cached that don't exist in sitemap.xml.",
+    '#default_value'  => variable_get(BOOST_WARMER_VAR_URLS_STATIC, ''),
   );
-
 
 
   // Get username and password for http authorization (for crawling/requesting
   // pages that are behind http authentication).
-  $form[BOOST_WARMER_VAR_HTTPAUTH_USER] = array(
+  $collapsed = (variable_get(BOOST_WARMER_VAR_HTTPAUTH_PASS, '') == '') ? TRUE : FALSE;
+  $form['httpauth'] = array(
+    '#title'          => 'HTTP Authentication',
+    '#type'           => 'fieldset',
+    '#collapsible'    => TRUE,
+    '#collapsed'      => $collapsed,
+    '#description'    => "To access web pages that require HTTP authentication, enter the username and password here.",
+  );
+  $form['httpauth'][BOOST_WARMER_VAR_HTTPAUTH_USER] = array(
     '#title'          => "HTTP Auth username",
     '#type'           => 'textfield',
-    '#description'    => "If access to your site requires http authentication, you'll need to provide the username here and password (below).",
     '#default_value'  => variable_get(BOOST_WARMER_VAR_HTTPAUTH_USER, ''),
   );
-  $form[BOOST_WARMER_VAR_HTTPAUTH_PASS] = array(
+  $form['httpauth'][BOOST_WARMER_VAR_HTTPAUTH_PASS] = array(
     '#title'          => "HTTP Auth password",
     '#type'           => 'textfield',
     '#default_value'  => variable_get(BOOST_WARMER_VAR_HTTPAUTH_PASS, ''),
   );
 
 
+  // Allow the page requests to be executed with a specific user agent.
+  $form['useragent'] = array(
+    '#title'          => 'Browser User Agent',
+    '#type'           => 'fieldset',
+    '#collapsible'    => TRUE,
+    '#collapsed'      => TRUE,
+    '#description'    => "If your site expects certain types of browsers, you'll want to set this to something typical, e.g.:<br>" . BOOST_WARMER_DEFAULT_USER_AGENT . "<br><br>However, if you want to be able to filter for and ignore boost_warmer page requests (e.g., in your analytics tool) set this to something custom, e.g., boost_warmer",
+  );
+  $form['useragent'][BOOST_WARMER_VAR_USER_AGENT] = array(
+    '#title'          => "User agent to request pages with",
+    '#type'           => 'textfield',
+    '#default_value'  => variable_get(BOOST_WARMER_VAR_USER_AGENT, BOOST_WARMER_DEFAULT_USER_AGENT),
+  );
 
 
   return system_settings_form($form);
