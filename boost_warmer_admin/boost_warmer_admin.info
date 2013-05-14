@@ -1,5 +1,5 @@
 name = "Boost Warmer UI"
-description = "Administrativ settings for the Boost Warmer module."
+description = "Administrative settings for the Boost Warmer module."
 package = "Performance and scalability"
 configure = admin/config/system/boost-warmer
 

@@ -47,7 +47,7 @@ function boost_warmer_admin_settings() {
   $form[BOOST_WARMER_VAR_URLS_STATIC] = array(
     '#title'          => "Additional paths to test for Boost cache expiry",
     '#type'           => 'textarea',
-    '#description'    => "These should be paths that do not exist in sitemap.xml, nor are identified by hook_boost_warmer_get_urls().<br><br>One per line. Do not including leading '/' or http://.<br><br>This is useful when you have paths that you want cached that don't exist in sitemap.xml.",
+    '#description'    => "These should be paths that do not exist in sitemap.xml, nor are identified by hook_boost_warmer_get_urls().<br><br>One per line. Do not including leading '/' or http://.<br><br>This is useful when you have paths to crawl that are not found in sitemap.xml.",
     '#default_value'  => variable_get(BOOST_WARMER_VAR_URLS_STATIC, ''),
   );
 

@@ -112,4 +112,4 @@ v1.0, 2013-05-02
 TODO
 ====
 - in admin/settings page, provide link to 'crawl all pages now' with a batch
-  process
+  process (for the boost_warmer_admin module)
