@@ -9,9 +9,8 @@ visiting an uncached page is minimized.
 WHY USE THIS MODULE?
 ====================
 Using Boost is great for performance, but it's only beneficial if a user visits
-a page that's already been cached by Boost. (And that the cached page hasn't
-expired yet). This module tries to keep the cache warm for every page a user
-can visit on your site.
+a page that's already been cached by Boost and hasn't expired yet. This module 
+tries to keep the cache warm for every page a user can visit on your site.
 
 While similar to Boost Crawler (included with Boost), it has the following 
 differences:
