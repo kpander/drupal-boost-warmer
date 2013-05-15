@@ -76,7 +76,7 @@ function boost_warmer_admin_settings() {
     '#type'           => 'fieldset',
     '#collapsible'    => TRUE,
     '#collapsed'      => TRUE,
-    '#description'    => "If your site expects certain types of browsers, you'll want to set this to something typical, e.g.:<br>" . BOOST_WARMER_DEFAULT_USER_AGENT . "<br/><br/>However, if you want to be able to filter for and ignore boost_warmer page requests (e.g., in your analytics tool) set this to something custom, e.g., boost_warmer",
+    '#description'    => "If your site expects certain types of browsers, you'll want to set this to something typical, e.g.:<br/>" . BOOST_WARMER_DEFAULT_USER_AGENT . "<br/><br/>However, if you want to be able to filter for and ignore boost_warmer page requests (e.g., in your analytics tool) set this to something custom, e.g., boost_warmer",
   );
   $form['useragent'][BOOST_WARMER_VAR_USER_AGENT] = array(
     '#title'          => "User agent to request pages with",

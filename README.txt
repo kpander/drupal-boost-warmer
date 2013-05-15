@@ -112,8 +112,6 @@ TODO
 ====
 - in admin/settings page, provide link to 'crawl all pages now' with a batch
   process (for the boost_warmer_admin module)
-
 - see http://drupal.org/node/1938360 for another user who might use this
-
 - add 'how to implement hook' in readme
-
+- add apikey for /boost-warmer/crawl to prevent DOS abuse

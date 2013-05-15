@@ -2,9 +2,10 @@ name = "Boost Warmer"
 description = "Crawls site pages on a regular basis to keep the Boost cache fresh for the entire site."
 package = "Performance and scalability"
 
-core = 7.x
-version = "7.x-1.0"
+dependencies[] = boost
 
 files[] = class.BoostWarmer.php
 
-dependencies[] = boost
+core = 7.x
+;version = "7.x-1.0"
+

@@ -18,7 +18,7 @@ class BoostWarmer {
 
   // Defines the url to the root of the site e.g., "http://domain.com/"
   // This is used for defining our paths to crawl as absolute urls.
-  protected $url_base;
+  protected $urlBase;
 
   // Stores the full list of urls to crawl.
   protected $queue = array();
@@ -69,7 +69,6 @@ class BoostWarmer {
       $temp_file .= '.' . variable_get('boost_extension_texthtml', 'html');
 
       // dpm("look for file: $temp_file");
-
       if (file_exists($temp_file)) {
         // We already have a rendered static html file for this url. Because
         // we already called boost_cron() prior to this crawl event, that means
@@ -103,7 +102,7 @@ class BoostWarmer {
    * via the module settings page.
    */
   protected function getUrls() {
-    $this->url_base = $GLOBALS['base_url'] . '/';
+    $this->urlBase = $GLOBALS['base_url'] . '/';
 
     $this->getUrlsFromSitemap();
     $this->getUrlsFromHook();
@@ -116,7 +115,7 @@ class BoostWarmer {
    */
   protected function getUrlsFromSitemap() {
     // Retrieve URLs from sitemap.xml, if it exists.
-    $url  = $this->url_base . 'sitemap.xml';
+    $url  = $this->urlBase . 'sitemap.xml';
     $data = trim($this->requestUrl($url));
     if (empty($data)) {
       return;
@@ -142,7 +141,7 @@ class BoostWarmer {
     for ($i = 0; $i < count($urls); $i++) {
       $url = trim($urls[$i]);
       if (!empty($url)) {
-        $this->queue[] = $this->url_base . $url;
+        $this->queue[] = $this->urlBase . $url;
       }
     }
   }
@@ -161,7 +160,7 @@ class BoostWarmer {
       $url = trim($urls[$i]);
 
       if (!empty($url)) {
-        $this->queue[] = $this->url_base . $url;
+        $this->queue[] = $this->urlBase . $url;
       }
     }
   }
