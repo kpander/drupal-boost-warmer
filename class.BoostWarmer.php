@@ -16,18 +16,18 @@ class BoostWarmer {
   // $config->user_agent = The user agent to use when requesting pages via curl.
   protected $config;
 
-
   // Defines the url to the root of the site e.g., "http://domain.com/"
   // This is used for defining our paths to crawl as absolute urls.
   protected $url_base;
-
 
   // Stores the full list of urls to crawl.
   protected $queue = array();
 
 
-
-  function __construct($config) {
+  /**
+   * Constructor.
+   */
+  protected function __construct($config) {
     if (empty($config->auth_user) || empty($config->auth_pass)) {
       unset($config->auth_user);
       unset($config->auth_pass);
@@ -37,8 +37,7 @@ class BoostWarmer {
 
 
   /**
-   * For each url that doesn't have a rendered boost static html file, request
-   * it, to cause boost to render that page.
+   * Crawl urls that don't currently have a valid Boost static html file.
    *
    * Abort after we reach the maximum number of page requests per session.
    */
@@ -47,9 +46,8 @@ class BoostWarmer {
     $this->queue = variable_get(BOOST_WARMER_VAR_QUEUE, array());
     if (!count($this->queue)) {
       $this->getUrls();
-      #dpm($this->queue, 'refreshed queue with all urls to crawl');
+      // dpm($this->queue, 'refreshed queue with all urls to crawl');
     }
-
 
     $requested_urls = array();
 
@@ -70,7 +68,7 @@ class BoostWarmer {
       $temp_file  = DRUPAL_ROOT . '/' . $boost['filename'];
       $temp_file .= '.' . variable_get('boost_extension_texthtml', 'html');
 
-      #dpm("look for file: $temp_file");
+      // dpm("look for file: $temp_file");
 
       if (file_exists($temp_file)) {
         // We already have a rendered static html file for this url. Because
@@ -78,12 +76,12 @@ class BoostWarmer {
         // the cached file hasn't expired yet and is valid.
         //
         // Ignore this url.
-        #drupal_set_message("<em>Ignore: $url</em>");
+        // drupal_set_message("<em>Ignore: $url</em>");
       }
       else {
         // This url hasn't been statically cached by Boost yet, or it's expired
         // recently. Request the page so Boost can build the static html file.
-        #drupal_set_message("REQUEST: $url");
+        // drupal_set_message("REQUEST: $url");
         $requested_urls[] = preg_replace("/^https?:\/\/[^\/]+\//", '', $url);
         $this->requestUrl($url);
       }
@@ -97,16 +95,14 @@ class BoostWarmer {
   }
 
 
-
-
-
-
-
   /**
-   * Get all possible urls to crawl (from combining sitemap.xml and the
-   * files/sitemap.dynamic.txt files).
+   * Get all possible urls to crawl.
+   *
+   * This combines urls from by combining sitemap.xml, anything returned from
+   * calling hook_boost_warmer_get_urls(), and the static list of xmls added
+   * via the module settings page.
    */
-  private function getUrls() {
+  protected function getUrls() {
     $this->url_base = $GLOBALS['base_url'] . '/';
 
     $this->getUrlsFromSitemap();
@@ -118,14 +114,14 @@ class BoostWarmer {
   /**
    * Get URLs in sitemap.xml.
    */
-  private function getUrlsFromSitemap() {
+  protected function getUrlsFromSitemap() {
     // Retrieve URLs from sitemap.xml, if it exists.
     $url  = $this->url_base . 'sitemap.xml';
     $data = trim($this->requestUrl($url));
     if (empty($data)) {
       return;
     }
- 
+
     // Get urls from xml (if we were given valid xml data).
     if ($this->isXML($data)) {
       $xml_file_list = new SimpleXMLElement($data);
@@ -140,10 +136,10 @@ class BoostWarmer {
   /**
    * Get URLs defined by hook_boost_warmer_get_urls().
    */
-  private function getUrlsFromHook() {
+  protected function getUrlsFromHook() {
     $urls = variable_get(BOOST_WARMER_VAR_URLS_HOOK, array());
 
-    for ($i=0; $i<count($urls); $i++) {
+    for ($i = 0; $i < count($urls); $i++) {
       $url = trim($urls[$i]);
       if (!empty($url)) {
         $this->queue[] = $this->url_base . $url;
@@ -154,14 +150,14 @@ class BoostWarmer {
   /**
    * Get URLs defined in the admin/settings page.
    */
-  private function getUrlsFromStaticList() {
+  protected function getUrlsFromStaticList() {
     $text = trim(variable_get(BOOST_WARMER_VAR_URLS_STATIC, ''));
     if (empty($text)) {
       return;
     }
 
     $urls = explode("\n", $text);
-    for ($i = 0; $i<count($urls); $i++) {
+    for ($i = 0; $i < count($urls); $i++) {
       $url = trim($urls[$i]);
 
       if (!empty($url)) {
@@ -171,14 +167,13 @@ class BoostWarmer {
   }
 
 
-
-
-
   /**
-   * Request the given URL. This will cause boost to render the page to a
-   * static html file, thereby 'warming' the cache for this url.
+   * Request the given URL. 
+   *
+   * This will cause boost to render the page to a static html file, thereby 
+   * 'warming' the cache for this url.
    */
-  private function requestUrl($url) {
+  protected function requestUrl($url) {
     // Use curl if it's present. Otherwise, default to file_get_contents().
     if (function_exists('curl_exec')) {
       return $this->requestUrlCurl($url);
@@ -190,9 +185,13 @@ class BoostWarmer {
 
   /**
    * Load a page via curl and return the page contents.
+   * 
+   * @return string
+   *   Returns the html returned by the page request.
+   *
+   * @todo test user agent string is being used
    */
-  # @todo test user agent string is being used
-  private function requestUrlCurl($url) {
+  protected function requestUrlCurl($url) {
     $ch = curl_init();
 
     // If we've provide http authentication credentials for requesting pages,
@@ -213,10 +212,14 @@ class BoostWarmer {
 
   /**
    * Load a page via file_get_contents and return the page contents.
+   *
+   * @return string
+   *   Returns the html returned by the page request.
+   *
+   * @todo test httpauth requests for stream method
+   * @todo test user agent string is being used
    */
-  # @todo test httpauth requests for stream method
-  # @todo test user agent string is being used
-  private function requestUrlStream($url) {
+  protected function requestUrlStream($url) {
     // Create a stream.
     $headers = array(
       "Accept-language: en",
@@ -232,36 +235,35 @@ class BoostWarmer {
       ),
     );
     $context = stream_context_create($opts);
-    return file_get_contents($url, false, $context);
+    return file_get_contents($url, FALSE, $context);
   }
 
 
   /**
-   * Confirm the given xml data is valid, to avoid throwing an error when we
-   * use SimpleXMLElement().
+   * Confirm the given xml data is valid.
+   *
+   * This helps us avoid throwing an error when we use SimpleXMLElement().
    *
    * @see http://ca3.php.net/manual/en/class.simplexmlelement.php#107869
    */
-  private function isXML($data) {
-    libxml_use_internal_errors(true);
+  protected function isXML($data) {
+    libxml_use_internal_errors(TRUE);
 
     $doc = new DOMDocument('1.0', 'utf-8');
     $doc->loadXML($data);
 
     $errors = libxml_get_errors();
 
-    if (empty($errors)){
+    if (empty($errors)) {
       return TRUE;
     }
 
     $error = $errors[0];
-    if ($error->level < 3){
+    if ($error->level < 3) {
       return TRUE;
     }
 
     return FALSE;
   }
 
-
-
-} ### end of class
+}

@@ -22,11 +22,10 @@
  */
 
 /**
- * Specify urls that should be checked by boost_warmer when looking for expired
- * or non-cached pages.
+ * Get urls for boost_warmer to check when looking for expired pages.
  *
- * @return
- *   An array of paths or aliases, not including the domain.
+ * @return array
+ *   An array of paths or aliases (which don't include the domain).
  */
 function hook_boost_warmer_get_urls() {
   return array(
