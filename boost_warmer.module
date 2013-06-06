@@ -133,3 +133,10 @@ function boost_warmer_page_crawl_prepare() {
 
   variable_set(BOOST_WARMER_VAR_URLS_HOOK, $urls);
 }
+
+/**
+ * Empty the boost warmer queue.
+ */
+function boost_warmer_empty_queue() {
+  variable_set(BOOST_WARMER_VAR_QUEUE, array());
+}

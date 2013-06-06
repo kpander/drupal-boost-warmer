@@ -25,27 +25,50 @@ function boost_warmer_admin_menu() {
 
 /**
  * Prepare the module settings form.
+ *
+ * If we detect the 'reset' argument, clear the queue.
  */
 function boost_warmer_admin_settings() {
+  // If we selected the 'Empty the queue' link, empty... the queue.
+  if (arg(4) === 'reset') {
+    drupal_set_message(t("Boost Warmer queue has been emptied."));
+    boost_warmer_empty_queue();
+  }
+
+
   $form = array();
 
+  $form['reset'] = array(
+    '#title'          => t('Empty Boost Warmer Queue'),
+    '#type'           => 'fieldset',
+    '#collapsible'    => TRUE,
+    '#collapsed'      => TRUE,
+  );
+
+  $queue = variable_get(BOOST_WARMER_VAR_QUEUE, array());
+  $form['reset']['reset'] = array(
+    '#type'           => 'markup',
+    '#markup'         => '<p>' . t("The Boost Warmer queue currently contains @count items.", array('@count' => count($queue))) . '</p>' . '<p>' . l(t("Empty the queue."), 'admin/config/system/boost-warmer/reset') . '</p>',
+  );
+
+
   $form[BOOST_WARMER_VAR_MAX_REQUESTS] = array(
-    '#title'          => 'Maximum number of page requests per execution',
+    '#title'          => t('Maximum number of page requests per execution'),
     '#type'           => 'textfield',
     '#default_value'  => variable_get(BOOST_WARMER_VAR_MAX_REQUESTS, BOOST_WARMER_DEFAULT_MAX_REQUESTS),
   );
 
   $form[BOOST_WARMER_VAR_USE_WATCHDOG] = array(
-    '#title'          => "Should page requests be logged via watchdog?",
+    '#title'          => t("Should page requests be logged via watchdog?"),
     '#type'           => 'checkbox',
-    '#description'    => "This can quickly fill up your database. Only enable this if you know what you're doing!",
+    '#description'    => t("This can quickly fill up your database. Only enable this if you know what you're doing!"),
     '#default_value'  => variable_get(BOOST_WARMER_VAR_USE_WATCHDOG, BOOST_WARMER_DEFAULT_USE_WATCHDOG),
   );
 
   $form[BOOST_WARMER_VAR_URLS_STATIC] = array(
-    '#title'          => "Additional paths to test for Boost cache expiry",
+    '#title'          => t("Additional paths to test for Boost cache expiry"),
     '#type'           => 'textarea',
-    '#description'    => "These should be paths that do not exist in sitemap.xml, nor are identified by hook_boost_warmer_get_urls().<br/><br/>One per line. Do not including leading '/' or http://.<br/><br/>This is useful when you have paths to crawl that are not found in sitemap.xml.",
+    '#description'    => t("These should be paths that do not exist in sitemap.xml, nor are identified by hook_boost_warmer_get_urls().<br/><br/>One per line. Do not including leading '/' or http://.<br/><br/>This is useful when you have paths to crawl that are not found in sitemap.xml."),
     '#default_value'  => variable_get(BOOST_WARMER_VAR_URLS_STATIC, ''),
   );
 
@@ -53,33 +76,33 @@ function boost_warmer_admin_settings() {
   // pages that are behind http authentication).
   $collapsed = (variable_get(BOOST_WARMER_VAR_HTTPAUTH_PASS, '') == '') ? TRUE : FALSE;
   $form['httpauth'] = array(
-    '#title'          => 'HTTP Authentication',
+    '#title'          => t('HTTP Authentication'),
     '#type'           => 'fieldset',
     '#collapsible'    => TRUE,
     '#collapsed'      => $collapsed,
-    '#description'    => "To access web pages that require HTTP authentication, enter the username and password here.",
+    '#description'    => t("To access web pages that require HTTP authentication, enter the username and password here."),
   );
   $form['httpauth'][BOOST_WARMER_VAR_HTTPAUTH_USER] = array(
-    '#title'          => "HTTP Auth username",
+    '#title'          => t("HTTP Auth username"),
     '#type'           => 'textfield',
     '#default_value'  => variable_get(BOOST_WARMER_VAR_HTTPAUTH_USER, ''),
   );
   $form['httpauth'][BOOST_WARMER_VAR_HTTPAUTH_PASS] = array(
-    '#title'          => "HTTP Auth password",
+    '#title'          => t("HTTP Auth password"),
     '#type'           => 'textfield',
     '#default_value'  => variable_get(BOOST_WARMER_VAR_HTTPAUTH_PASS, ''),
   );
 
   // Allow the page requests to be executed with a specific user agent.
   $form['useragent'] = array(
-    '#title'          => 'Browser User Agent',
+    '#title'          => t('Browser User Agent'),
     '#type'           => 'fieldset',
     '#collapsible'    => TRUE,
     '#collapsed'      => TRUE,
-    '#description'    => "If your site expects certain types of browsers, you'll want to set this to something typical, e.g.:<br/>" . BOOST_WARMER_DEFAULT_USER_AGENT . "<br/><br/>However, if you want to be able to filter for and ignore boost_warmer page requests (e.g., in your analytics tool) set this to something custom, e.g., boost_warmer",
+    '#description'    => t("If your site expects certain types of browsers, you'll want to set this to something typical, e.g.:") . '<br/>' . BOOST_WARMER_DEFAULT_USER_AGENT . '<br/><br/>' . t("However, if you want to be able to filter for and ignore boost_warmer page requests (e.g., in your analytics tool) set this to something custom, e.g., boost_warmer"),
   );
   $form['useragent'][BOOST_WARMER_VAR_USER_AGENT] = array(
-    '#title'          => "User agent to request pages with",
+    '#title'          => t("User agent to request pages with"),
     '#type'           => 'textfield',
     '#default_value'  => variable_get(BOOST_WARMER_VAR_USER_AGENT, BOOST_WARMER_DEFAULT_USER_AGENT),
   );
