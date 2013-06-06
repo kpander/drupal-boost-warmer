@@ -35,7 +35,6 @@ function boost_warmer_admin_settings() {
     boost_warmer_empty_queue();
   }
 
-
   $form = array();
 
   $form['reset'] = array(
@@ -50,7 +49,6 @@ function boost_warmer_admin_settings() {
     '#type'           => 'markup',
     '#markup'         => '<p>' . t("The Boost Warmer queue currently contains @count items.", array('@count' => count($queue))) . '</p>' . '<p>' . l(t("Empty the queue."), 'admin/config/system/boost-warmer/reset') . '</p>',
   );
-
 
   $form[BOOST_WARMER_VAR_MAX_REQUESTS] = array(
     '#title'          => t('Maximum number of page requests per execution'),
