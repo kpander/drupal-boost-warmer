@@ -190,10 +190,11 @@ function boost_warmer_admin_crawl() {
  */
 function boost_warmer_admin_crawl_process($url, &$context) {
   $context['message'] = "Requesting url [{$url}]";
-  $context['results'][] = $url;
 
   $o = new BoostWarmer(boost_warmer_get_crawl_config());
-  $o->crawlUrl($url);
+  if ($o->crawlUrl($url)) {
+    $context['results'][] = $url;
+  }
 }
 
 /**
@@ -203,7 +204,7 @@ function boost_warmer_admin_crawl_finished($success, $results, $operations) {
   $message = "Crawl process complete. ";
 
   if ($success) {
-    $message .= count($results) . ' urls processed.';
+    $message .= count($results) . ' urls requested and cached.';
   }
   else {
     // An error occurred.
@@ -213,4 +214,3 @@ function boost_warmer_admin_crawl_finished($success, $results, $operations) {
 
   drupal_set_message($message);
 }
-

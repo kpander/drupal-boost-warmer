@@ -44,10 +44,12 @@ class BoostWarmer {
   public function crawl() {
     // Get the queue of urls to crawl, or refresh the queue if it's empty.
     $this->queue = variable_get(BOOST_WARMER_VAR_QUEUE, array());
+
     if (!count($this->queue)) {
       $this->queue = $this->getUrls();
       // dpm($this->queue, 'refreshed queue with all urls to crawl');
     }
+
 
     $requested_urls = array();
 
@@ -60,7 +62,9 @@ class BoostWarmer {
       };
 
       $url = array_shift($this->queue);
-      $this->crawlUrl($url);
+      if ($this->crawlUrl($url)) {
+        $requested_urls[] = preg_replace("/^https?:\/\/[^\/]+\//", '', $url);
+      }
     }
 
     // Save the revised queue.
@@ -99,7 +103,6 @@ class BoostWarmer {
       // This url hasn't been statically cached by Boost yet, or it's expired
       // recently. Request the page so Boost can build the static html file.
       // drupal_set_message("REQUEST: $url");
-      $requested_urls[] = preg_replace("/^https?:\/\/[^\/]+\//", '', $url);
       $this->requestUrl($url);
       return TRUE;
     }
