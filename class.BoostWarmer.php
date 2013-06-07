@@ -27,7 +27,7 @@ class BoostWarmer {
   /**
    * Constructor.
    */
-  protected function __construct($config) {
+  public function __construct($config) {
     if (empty($config->auth_user) || empty($config->auth_pass)) {
       unset($config->auth_user);
       unset($config->auth_pass);
@@ -45,7 +45,7 @@ class BoostWarmer {
     // Get the queue of urls to crawl, or refresh the queue if it's empty.
     $this->queue = variable_get(BOOST_WARMER_VAR_QUEUE, array());
     if (!count($this->queue)) {
-      $this->getUrls();
+      $this->queue = $this->getUrls();
       // dpm($this->queue, 'refreshed queue with all urls to crawl');
     }
 
@@ -60,30 +60,7 @@ class BoostWarmer {
       };
 
       $url = array_shift($this->queue);
-
-      // Ask Boost for the statically cached filename. This will take into
-      // consideration all Boost variables automatically, as it uses Boost
-      // itself to generate the filename.
-      $boost      = boost_transform_url($url);
-      $temp_file  = DRUPAL_ROOT . '/' . $boost['filename'];
-      $temp_file .= '.' . variable_get('boost_extension_texthtml', 'html');
-
-      // dpm("look for file: $temp_file");
-      if (file_exists($temp_file)) {
-        // We already have a rendered static html file for this url. Because
-        // we already called boost_cron() prior to this crawl event, that means
-        // the cached file hasn't expired yet and is valid.
-        //
-        // Ignore this url.
-        // drupal_set_message("<em>Ignore: $url</em>");
-      }
-      else {
-        // This url hasn't been statically cached by Boost yet, or it's expired
-        // recently. Request the page so Boost can build the static html file.
-        // drupal_set_message("REQUEST: $url");
-        $requested_urls[] = preg_replace("/^https?:\/\/[^\/]+\//", '', $url);
-        $this->requestUrl($url);
-      }
+      $this->crawlUrl($url);
     }
 
     // Save the revised queue.
@@ -93,6 +70,41 @@ class BoostWarmer {
     return $requested_urls;
   }
 
+  /**
+   * Crawl one specific url *if* it doesn't have a valid Boost static html file.
+   *
+   * @return boolean
+   *   TRUE if we requested the url
+   *   FALSE if we didn't (because a valid Boost cache file already existed)
+   */
+  public function crawlUrl($url) {
+    // Ask Boost for the statically cached filename. This will take into
+    // consideration all Boost variables automatically, as it uses Boost
+    // itself to generate the filename.
+    $boost      = boost_transform_url($url);
+    $temp_file  = DRUPAL_ROOT . '/' . $boost['filename'];
+    $temp_file .= '.' . variable_get('boost_extension_texthtml', 'html');
+
+    // dpm("look for file: $temp_file");
+    if (file_exists($temp_file)) {
+      // We already have a rendered static html file for this url. Because
+      // we already called boost_cron() prior to this crawl event, that means
+      // the cached file hasn't expired yet and is valid.
+      //
+      // Ignore this url.
+      // drupal_set_message("<em>Ignore: $url</em>");
+      return FALSE;
+    }
+    else {
+      // This url hasn't been statically cached by Boost yet, or it's expired
+      // recently. Request the page so Boost can build the static html file.
+      // drupal_set_message("REQUEST: $url");
+      $requested_urls[] = preg_replace("/^https?:\/\/[^\/]+\//", '', $url);
+      $this->requestUrl($url);
+      return TRUE;
+    }
+  }
+
 
   /**
    * Get all possible urls to crawl.
@@ -100,14 +112,17 @@ class BoostWarmer {
    * This combines urls from by combining sitemap.xml, anything returned from
    * calling hook_boost_warmer_get_urls(), and the static list of xmls added
    * via the module settings page.
+   *
+   * @return array
    */
-  protected function getUrls() {
+  public function getUrls() {
     $this->urlBase = $GLOBALS['base_url'] . '/';
 
     $this->getUrlsFromSitemap();
     $this->getUrlsFromHook();
     $this->getUrlsFromStaticList();
-    $this->queue = array_unique($this->queue);
+
+    return array_unique($this->queue);
   }
 
   /**
@@ -172,7 +187,7 @@ class BoostWarmer {
    * This will cause boost to render the page to a static html file, thereby 
    * 'warming' the cache for this url.
    */
-  protected function requestUrl($url) {
+  public function requestUrl($url) {
     // Use curl if it's present. Otherwise, default to file_get_contents().
     if (function_exists('curl_exec')) {
       return $this->requestUrlCurl($url);

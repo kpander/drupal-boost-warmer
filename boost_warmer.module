@@ -94,13 +94,7 @@ function boost_warmer_page_crawl() {
   boost_warmer_page_crawl_prepare();
 
   // Crawl any pages that haven't been cached yet (or have expired).
-  $options = (object) array(
-    'max_requests'  => variable_get(BOOST_WARMER_VAR_MAX_REQUESTS, BOOST_WARMER_DEFAULT_MAX_REQUESTS),
-    'user_agent'    => variable_get(BOOST_WARMER_VAR_USER_AGENT, BOOST_WARMER_DEFAULT_USER_AGENT),
-    'auth_user'     => variable_get(BOOST_WARMER_VAR_HTTPAUTH_USER, ''),
-    'auth_pass'     => variable_get(BOOST_WARMER_VAR_HTTPAUTH_PASS, ''),
-  );
-  $o = new BoostWarmer($options);
+  $o = new BoostWarmer(boost_warmer_get_crawl_config());
   $requested_urls = $o->crawl();
 
   // Log a record of the pages we requested.
@@ -113,6 +107,18 @@ function boost_warmer_page_crawl() {
 
   // Force a clean exit, with no output.
   exit(0);
+}
+
+/**
+ * Get the crawl configuration from the module settings.
+ */
+function boost_warmer_get_crawl_config() {
+  return (object) array(
+    'max_requests'  => variable_get(BOOST_WARMER_VAR_MAX_REQUESTS, BOOST_WARMER_DEFAULT_MAX_REQUESTS),
+    'user_agent'    => variable_get(BOOST_WARMER_VAR_USER_AGENT, BOOST_WARMER_DEFAULT_USER_AGENT),
+    'auth_user'     => variable_get(BOOST_WARMER_VAR_HTTPAUTH_USER, ''),
+    'auth_pass'     => variable_get(BOOST_WARMER_VAR_HTTPAUTH_PASS, ''),
+  );
 }
 
 
