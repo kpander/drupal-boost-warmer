@@ -114,7 +114,7 @@ function boost_warmer_admin_settings_crawl(&$form) {
 
   $form['crawl']['crawl'] = array(
     '#type'           => 'markup',
-    '#markup'         => '<p>' . t("Use this link to crawl all defined pages in your site now. Note: This will take a long time if you have many pages, and may affect the performance of the site. These requests will also not be logged to watchdog. This entire process is something best done in 'off' hours!") . '</p>' . '<p>' . l(t("Crawl all pages now."), BOOST_WARMER_ADMIN_PATH . '/crawl-all') . '</p>',
+    '#markup'         => '<p>' . t("Use this link to crawl all uncached pages on your site now. Note: This will take a long time if you have many pages, and may affect the performance of the site. These requests will also not be logged to watchdog. This entire process is something best done in 'off' hours!") . '</p>' . '<p>' . l(t("Crawl all pages now."), BOOST_WARMER_ADMIN_PATH . '/crawl-all') . '</p>',
   );
 }
 
