@@ -40,6 +40,9 @@ When the path /boost-warmer/crawl is requested, this is what happens:
    page requests, causing them to be cached by Boost. (The number of urls is
    configurable in the admin/settings page.)
 
+Note: If the xmlsitemap module is installed, we ask that module for the list
+of defined sitemaps. Otherwise, we default to: /sitemap.xml
+
 
 INSTALLATION
 ============

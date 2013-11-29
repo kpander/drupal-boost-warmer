@@ -130,21 +130,47 @@ class BoostWarmer {
 
   /**
    * Get URLs in sitemap.xml.
+   *
+   * Try to get the sitemap names from xmlsitemap.module, if present.
+   * Otherwise, assume it's at /sitemap.xml.
    */
   protected function getUrlsFromSitemap() {
-    // Retrieve URLs from sitemap.xml, if it exists.
-    $url  = $this->urlBase . 'sitemap.xml';
-    $data = trim($this->requestUrl($url));
-    if (empty($data)) {
-      return;
+    $urls = array();
+
+    if (module_exists('xmlsitemap')) {
+      // Find the defined sitemaps, as provided by the module. This is taken
+      // from xmlsitemap.admin.inc.
+      $query = db_select('xmlsitemap_sitemap');
+      $query->fields('xmlsitemap_sitemap', array('smid'));
+      $smids = $query->execute()->fetchCol();
+      $sitemaps = $smids ? xmlsitemap_sitemap_load_multiple($smids) : array();
+
+      while (count($sitemaps)) {
+        $sitemap = array_shift($sitemaps);
+        $urls[] = url($sitemap->uri['path'], $sitemap->uri['options']);
+      }
     }
 
-    // Get urls from xml (if we were given valid xml data).
-    if ($this->isXML($data)) {
-      $xml_file_list = new SimpleXMLElement($data);
+    if (!count($urls)) {
+      // The xmlsitemap module isn't installed, or it didn't return any defined
+      // sitemaps. Assume the sitemap is at: /sitemap.xml
+      $urls[] = $this->urlBase . 'sitemap.xml';
+    }
 
-      foreach ($xml_file_list->url as $xml_file_url_list) {
-        $this->queue[] = (string) $xml_file_url_list->loc;
+    // Retrieve URLs from found sitemap.xml files, if they exist.
+    foreach ($urls as $url) {
+      $data = trim($this->requestUrl($url));
+      if (empty($data)) {
+        continue;
+      }
+
+      // Get urls from xml (if we were given valid xml data).
+      if ($this->isXML($data)) {
+        $xml_file_list = new SimpleXMLElement($data);
+
+        foreach ($xml_file_list->url as $xml_file_url_list) {
+          $this->queue[] = (string) $xml_file_url_list->loc;
+        }
       }
     }
   }
