@@ -1,3 +1,9 @@
+NOTE: This repo is a legacy Drupal 7.x module and is no longer maintained or considered relevant. It was originally hosted here:
+
+  - https://www.drupal.org/sandbox/kpander/1986268
+
+---
+
 README.txt
 ==========
 BOOST WARMER is a module that visits all pages defined in your sitemap.xml file
